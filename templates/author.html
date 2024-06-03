@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crud Author</title>
+    <!-- Ładowanie zewnętrznych bibliotek CSS do stylizacji strony -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <!-- Ładowanie zewnętrznych bibliotek JavaScript do funkcjonalności strony -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- Ładowanie własnego pliku CSS -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}"/>
+    <!-- Linki nawigacyjne do różnych sekcji CRUD -->
+    <a href="/author">Author CRUD</a> | <a href="/book">Book CRUD</a> | <a href="/shelf">Shelf CRUD</a>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            // Inicjalizacja tooltipów
+            $('[data-toggle="tooltip"]').tooltip();
+            // Definicja akcji dla przycisków dodawania, edycji i usuwania
+            var actions = '<a class="add" title="Add" data-toggle="tooltip"><i class="fa fa-user-plus"></i></a>' +
+                          '<a class="edit" title="Edit" data-toggle="tooltip"><i class="fa fa-pencil"></i></a>' +
+                          '<a class="delete" title="Delete" data-toggle="tooltip"><i class="fa fa-trash-o"></i></a>';
+            // Obsługa kliknięcia przycisku "Add New"
+            $(".add-new").click(function(){
+                $(this).attr("disabled", "disabled");
+                var index = $("table tbody tr:last-child").index();
+                var row = '<tr>' +
+                    '<td><input type="text" class="form-control" style="display:none" name="id" id="txtid" readonly></td>' +
+                    '<td><input type="text" class="form-control" name="firstname" id="txtfirstname"></td>' +
+                    '<td><input type="text" class="form-control" name="lastname" id="txtlastname"></td>' +
+                    '<td>' + actions + '</td>' +
+                    '</tr>';
+                $("table").append(row);
+                $("table tbody tr").eq(index + 1).find(".add, .edit, .delete").toggle();
+                $('[data-toggle="tooltip"]').tooltip();
+            });
+        });
+
+        // Obsługa kliknięcia przycisku "Add"
+        $(document).on("click", ".add", function(){
+            var empty = false;
+            var input = $(this).parents("tr").find('input[type="text"]');
+            input.each(function(){
+                if(!$(this).val()){
+                    $(this).addClass("error");
+                    empty = true;
+                } else{
+                    $(this).removeClass("error");
+                }
+            });
+            var firstname = $("#txtfirstname").val();
+            var lastname = $("#txtlastname").val();
+            // Wysłanie żądania AJAX do dodania nowego autora
+            $.ajax({
+                url: '/api/author',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ firstname: firstname, lastname: lastname }),
+                success: function(data) {
+                    console.log(data)
+                    $("#displaymessage").html(data.msg);
+                    $("#displaymessage").show();
+                    location.reload();
+                },
+                error: function(xhr) {
+                    console.log(xhr.responseText)
+                    $("#displaymessage").html(xhr.responseText);
+                    $("#displaymessage").show();
+                }
+            });
+            $(this).parents("tr").find(".error").first().focus();
+            if(!empty){
+                input.each(function(){
+                    $(this).parent("td").html($(this).val());
+                });
+                $(this).parents("tr").find(".add, .edit").toggle();
+                $(".add-new").removeAttr("disabled");
+            }
+        });
+
+        // Obsługa kliknięcia przycisku "Edit"
+        $(document).on("click", ".edit", function () {
+            $(this).parents("tr").find("td:not(:last-child)").each(function (i) {
+                var idname;
+                if (i == "0") {
+                    idname = 'txtid';
+                } else if (i == '1') {
+                    idname = 'txtfirstname';
+                } else if (i == '2') {
+                    idname = 'txtlastname';
+                }
+                if (idname == 'txtid') {
+                    $(this).html('<input type="text" name="updaterec" id="' + idname + '" class="form-control" value="' + $(this).text() + '" readonly>');
+                } else {
+                    $(this).html('<input type="text" name="updaterec" id="' + idname + '" class="form-control" value="' + $(this).text() + '">');
+                }
+            });
+            $(this).parents("tr").find(".add, .edit").toggle();
+            $(".add-new").attr("disabled", "disabled");
+            $(this).parents("tr").find(".add").removeClass("add").addClass("update");
+        });
+
+        // Obsługa kliknięcia przycisku "Update"
+        $(document).on("click", ".update", function(){
+            var id = $(this).attr("id");
+            var string = id;
+            var firstname = $("#txtfirstname").val();
+            var lastname = $("#txtlastname").val();
+            // Wysłanie żądania AJAX do aktualizacji autora
+            $.ajax({
+                url: '/api/author/' + string,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ firstname: firstname, lastname: lastname }),
+                success: function(data) {
+                    console.log(data)
+                    $("#displaymessage").html(data.msg);
+                    $("#displaymessage").show();
+                    location.reload();
+                },
+                error: function(xhr) {
+                    console.log(xhr.responseText)
+                    $("#displaymessage").html(xhr.responseText);
+                    $("#displaymessage").show();
+                }
+            });
+        });
+
+        // Obsługa kliknięcia przycisku "Delete"
+        $(document).on("click", ".delete", function(){
+            var id = $(this).attr("id");
+            var string = id;
+            // Wysłanie żądania AJAX do usunięcia autora
+            $.ajax({
+                url: '/api/author/' + string,
+                type: 'DELETE',
+                success: function(data) {
+                    console.log(data)
+                    $("#displaymessage").html(data.msg);
+                    $("#displaymessage").show();
+                    location.reload();
+                },
+                error: function(xhr) {
+                    console.log(xhr.responseText)
+                    $("#displaymessage").html(xhr.responseText);
+                    $("#displaymessage").show();
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1 align="center">Author</h1>
+    <div class="table-wrapper">
+        <div class="row">
+            <div class="col-sm-8"><h2><b>Author</b></h2>
+                <div class="col-sm-4">
+                    <!-- Przycisk dodawania nowego autora -->
+                    <button type="button" class="btn btn-info add-new"><i class="fa fa-plus"></i> Add New</button>
+                </div>
+                <div class='btn btn-info' id="displaymessage" style="display:none;width:100%;margin-top:10px;"></div>
+            </div>
+        </div>
+    </div>
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Pętla wyświetlająca autorów -->
+        {% for row in authors %}
+            <tr>
+                <td>{{ row.id }}</td>
+                <td>{{ row.firstname }}</td>
+                <td>{{ row.lastname }}</td>
+                <td>
+                    <a class="add" title="Add" data-toggle="tooltip" id="{{ row.id }}"><i class="fa fa-user-plus"></i></a>
+                    <a class="edit" title="Edit" data-toggle="tooltip" id="{{ row.id }}"><i class="fa fa-pencil"></i></a>
+                    <a class="delete" title="Delete" data-toggle="tooltip" id="{{ row.id }}"><i class="fa fa-trash-o"></i></a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
